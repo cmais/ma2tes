@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Audioguia</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    background: #000;
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .stage {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .photo {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
+  }
+  .fallback {
+    color: #666;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 18px;
+    text-align: center;
+    padding: 0 24px;
+  }
+  .btn {
+    position: absolute;
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    padding: 0;
+    touch-action: manipulation;
+  }
+  .btn svg { display: block; }
+  .ring {
+    position: absolute;
+    width: 88px;
+    height: 88px;
+    transform: rotate(-90deg);
+    pointer-events: none;
+  }
+  .ring circle {
+    fill: none;
+    stroke-width: 3;
+  }
+  .ring .track {
+    stroke: rgba(255,255,255,0.18);
+  }
+  .ring .progress {
+    stroke: #fff;
+    stroke-linecap: round;
+    stroke-dasharray: 251.2;
+    stroke-dashoffset: 251.2;
+    transition: stroke-dashoffset 0.1s linear;
+  }
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+  <img class="photo" id="photo" alt="">
+  <svg class="ring" viewBox="0 0 88 88">
+    <circle class="track" cx="44" cy="44" r="40"></circle>
+    <circle class="progress" id="progressRing" cx="44" cy="44" r="40"></circle>
+  </svg>
+  <button class="btn" id="btn" aria-label="Reproduzir">
+    <svg id="icon" width="32" height="32" viewBox="0 0 32 32">
+      <polygon id="iconPlay" points="10,7 25,16 10,25" fill="#fff"></polygon>
+      <g id="iconPause" style="display:none">
+        <rect x="9" y="7" width="6" height="18" rx="1.5" fill="#fff"></rect>
+        <rect x="19" y="7" width="6" height="18" rx="1.5" fill="#fff"></rect>
+      </g>
+    </svg>
+  </button>
+</div>
+
+<audio id="audio" preload="auto"></audio>
+
+<script>
+(function () {
+  var nome = window.location.search.slice(1).split('&')[0];
+  nome = decodeURIComponent(nome || '').trim();
+
+  var stage = document.getElementById('stage');
+  var photo = document.getElementById('photo');
+  var audio = document.getElementById('audio');
+  var btn = document.getElementById('btn');
+  var iconPlay = document.getElementById('iconPlay');
+  var iconPause = document.getElementById('iconPause');
+  var ring = document.getElementById('progressRing');
+  var CIRC = 251.2;
+
+  if (!nome) {
+    stage.innerHTML = '<div class="fallback">QR code inválido.</div>';
+    return;
+  }
+
+  photo.src = 'img/' + nome + '.jpg';
+  photo.onerror = function () {
+    stage.style.background = '#111';
+  };
+  audio.src = 'audio/' + nome + '.mp3';
+
+  function setPlayingUI(playing) {
+    iconPlay.style.display = playing ? 'none' : '';
+    iconPause.style.display = playing ? '' : 'none';
+  }
+
+  btn.addEventListener('click', function () {
+    if (audio.paused) {
+      audio.play().catch(function () {});
+    } else {
+      audio.pause();
+    }
+  });
+
+  audio.addEventListener('play', function () { setPlayingUI(true); });
+  audio.addEventListener('pause', function () { setPlayingUI(false); });
+  audio.addEventListener('ended', function () {
+    setPlayingUI(false);
+    ring.style.strokeDashoffset = CIRC;
+  });
+  audio.addEventListener('timeupdate', function () {
+    if (!audio.duration) return;
+    var frac = audio.currentTime / audio.duration;
+    ring.style.strokeDashoffset = CIRC - frac * CIRC;
+  });
+})();
+</script>
+
+</body>
+</html>
